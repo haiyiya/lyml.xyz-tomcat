@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lyml.demo1.mapper.MessageMapper">
+    <select id="listByObj" parameterType="com.lyml.demo1.model.Message" resultType="com.lyml.demo1.model.Message">
+        select m.*,u.header as header from message m
+        left join user u on u.id = m.userId
+        left join roleuser ru on ru.userId = u.id
+        left join roleuser ru1 on ru1.userId = #{userId} and ru1.roleId = ru.roleId
+        where ru1.id is not null or (m.userId = #{userId})
+        group by m.id
+        order by m.createTime desc
+    </select>
+</mapper>

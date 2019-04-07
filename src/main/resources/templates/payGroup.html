@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<#assign security=JspTaglibs["http://www.springframework.org/security/tags"] />
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/layui/css/layui.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/demo1.css">
+    <script src="/static/layui/layui.js"></script>
+    <script src="/static/layui/js/jquery-3.3.1.min.js"></script>
+    <title>LTML的一个页面</title>
+    <style>
+        .btn-paygroup:hover{background-color:#009688;color:#fff;}
+        .btn-paygroup-selected{background-color:#009688;color:#fff;}
+        .btn-payuser{background-color:#0096889e;border-radius:2px;margin:12px 14px 0px 0px;color:#fff;}
+        .btn-payuser-del{position:absolute;background-color:#888888;color:#fff;width:16px;height:16px;text-align:center;border-radius:8px;right:7px;top:5px;cursor:pointer;}
+        /*表单左边距*/
+        .layui-input-block{margin-left:0px;}
+        .layui-input, .layui-textarea{height: 30px;width: 180px;}
+        form .layui-btn-sm {margin-bottom: 5px;}
+    </style>
+</head>
+<body>
+    <div>
+        <form class="layui-form" action="">
+            <div class="layui-form-item layui-col-xs2" style="clear:none; width: 180px;">
+                <div class="layui-input-block">
+                    <input type="text" name="name" autocomplete="off" placeholder="角色名" lay-verify="required" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item layui-col-xs2" style="clear:none; width: 180px;">
+                <div class="layui-input-block">
+                    <input type="text" name="param" autocomplete="off" placeholder="参数" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item layui-col-xs2" style="clear:none; width: 180px;">
+                <div class="layui-input-block">
+                    <input type="number" name="sort" autocomplete="off" placeholder="排序" class="layui-input">
+                </div>
+            </div>
+            <button class="layui-btn layui-btn-sm" lay-submit lay-filter="saveRole"><i class="iconfont">&#xe634;</i>添加</button>
+        </form>
+        <br>
+        <div id="payGroupList"></div>
+
+        <script id="payGroupTmp" type="text/html">
+            <form class="layui-form" action="">
+                {{#  layui.each(d.records, function(index, item){ }}
+                    <button type="button" id="{{item.id}}" class="layui-btn layui-btn-primary layui-btn-sm btn-paygroup">{{item.name||''}}{{(item.param?(' ('+item.param+')'):'')}}</button>
+                {{# }) }}
+            </form>
+        </script>
+        <fieldset class="layui-elem-field layui-field-title" style="margin: 20px 0px 5px 0;">
+            <legend>包含的用户</legend>
+        </fieldset>
+        <div>
+            <div id="payUserList">
+            </div>
+            <script id="payUserTmp" type="text/html">
+                {{#  layui.each(d.records, function(index, item){ }}
+                <div style="width: -webkit-fit-content;float: left;position: relative;">
+                    <button type="button" class="layui-btn layui-btn-sm btn-payuser">{{item.userName||''}}</button>
+                    <div id="{{item.id}}" class="btn-payuser-del">×</div>
+                </div>
+                {{# }) }}
+            </script>
+            <div style="clear:both;"></div>
+        </div>
+    </div>
+    <script>
+        parent.fitIframeHeight();
+
+        var addPayUser = function(){}
+
+        layui.use(['form','laytpl','laypage','element','upload'],function(){
+            var form=layui.form;
+            var laytpl = layui.laytpl;
+
+            form.on('submit(saveRole)',function(data){
+                $.post("/payGroup/save", data.field, function success(data) {
+                    if(data.success) {
+                        initRole();
+                        $('form input').val('');
+                    }else{
+                        layer.msg(data.msg);
+                    }
+                }, "json");
+                return false;
+            });
+
+            addPayUser = function(userId){
+                var payGroupElem = $('.btn-paygroup-selected');
+
+                if(payGroupElem.length > 0){
+                    var groupId = payGroupElem.attr('id');
+
+                    $.post("/payUser/save", {groupId:groupId,userId:userId}, function success(data) {
+                        if(data.success) {
+                            $('#payUserList').append(laytpl(payUserTmp.innerHTML).render({records:[data.data]}));
+
+                            parent.fitIframeHeight();
+
+                            $('.btn-payuser-del').click(function(){
+                                var elem = $(this);
+                                var id = elem.attr('id');
+                                $.post("/payUser/del", {
+                                    ids: id
+                                }, function success(data) {
+                                    if(data.success){
+                                        elem.parent().remove();
+                                    }else{
+                                        layer.alert(data.msg);
+                                    }
+                                }, "json");
+                            })
+                        }else{
+                            layer.msg(data.msg);
+                        }
+                    }, "json");
+                }
+            }
+
+            initRole();
+            function initRole(){
+                $.post("/payGroup/list",{},function success(data){
+                    $('#payGroupList').html(laytpl(payGroupTmp.innerHTML).render({records:data.data}));
+                    form.render('checkbox')
+
+                    parent.fitIframeHeight();
+
+                    $('.btn-paygroup').click(function(){
+                        $('.btn-paygroup-selected').removeClass('btn-paygroup-selected');
+                        $(this).addClass('btn-paygroup-selected');
+
+                        var id = $(this).attr('id');
+                        initPayUser(id);
+                    })
+                },"json");
+            }
+
+            function initPayUser(id){
+                $.post("/payUser/list",{groupId:id},function success(data){
+                    $('#payUserList').html(laytpl(payUserTmp.innerHTML).render({records:data.data}));
+                    form.render('checkbox')
+
+                    parent.fitIframeHeight();
+
+                    $('.btn-payuser-del').click(function(){
+                        var elem = $(this);
+                        var id = elem.attr('id');
+                        $.post("/payUser/del", {
+                            ids: id
+                        }, function success(data) {
+                            if(data.success){
+                                elem.parent().remove();
+                            }else{
+                                layer.alert(data.msg);
+                            }
+                        }, "json");
+                    })
+                },"json");
+            }
+        })
+    </script>
+</body>
+</html>

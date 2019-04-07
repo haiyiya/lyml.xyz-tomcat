@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lyml.demo1.mapper.PayGroupMapper">
+    <select id="listByObj" parameterType="com.lyml.demo1.model.PayGroup" resultType="com.lyml.demo1.model.PayGroup">
+        SELECT * FROM paygroup where 1=1 order by sort
+    </select>
+</mapper>

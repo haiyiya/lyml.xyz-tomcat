@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<#assign security=JspTaglibs["http://www.springframework.org/security/tags"] />
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/layui/css/layui.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/demo1.css">
+    <script src="/static/layui/layui.js"></script>
+    <script src="/static/layui/js/jquery-3.3.1.min.js"></script>
+    <script src="/static/layui/js/core-values.js"></script>
+    <title>LYML的一个页面</title>
+    <style>
+        .layui-elem-field legend{font-size:16px;}
+        .item{clear:both;width:100%;height:41px;line-height:41px;cursor:default;border-bottom:1px solid #cccccc54;}
+        .item:hover{background-color:#cccccc87;}
+        .item-header{height:41px;line-height:41px;float:left;text-align:center;margin-left:15px;margin-right:8px;}
+        .item-header img{width:20px;height:20px;border-radius:50%;}
+        .item-title{height:100%;margin-left:10px;float:left;text-align:center;}
+        .item-del{width:24px;height:24px;line-height:22px;text-align:center;border-radius:50%;float:right;margin-top:9px;margin-right:9px;cursor:default;color:#bfbfbf;}
+        .item-del:hover{background-color:#cccccc87;cursor:default;color:#000000a6;}
+        /*导航栏左边距*/
+        .layui-layout-left{left:0px;}
+        /*表单左边距*/
+        .layui-input-block{margin-left:0px;}
+        /*导航栏指示器颜色*/
+        .layui-nav .layui-this:after,.layui-nav-bar,.layui-nav-tree .layui-nav-itemed:after{background-color:#a1d3e8;}
+        /*导航栏鼠标指针*/
+        .layui-nav a{cursor:default;}
+        /*添加表单*/
+        .headerImg{width:85px;height:85px;border-radius:50%;border:2px solid #f4f4f4;}
+        #userForm input{width:240px;}
+        img:hover{border-color:#ff4081;}
+        .image-box{width:150px;height:100px;background:#ff4081;float:left;}
+        .tab-iframe{width:100%;border:0px;}
+    </style>
+</head>
+<body>
+    <#include "/nav.html" />
+    <@nav/>
+    <div class="layui-col-xs2">
+        <div id="userList" style="overflow:auto; overflow-x:hidden; min-height: 200px;padding: 10px 0;">
+            <div style="text-align: center;width: 100%;margin-top: 100px;"><i class="layui-anim layui-anim-rotate layui-anim-loop layui-icon " style="font-size: 30px;"></i></div>
+        </div>
+        <div style="width: 100%;text-align: center;"><div id="userTurn"></div></div>
+        <script id="userTmp" type="text/html">
+            {{#  layui.each(d.records, function(index, item){ }}
+            <div id="{{item.id}}" title="{{item.username||''}}" class="item">
+                <div class="item-header"><img src="{{item.header?item.header:'/static/images/header_gray.png'}}"></div>
+                <div>
+                    <div class="item-title" id="{{item.id}}">{{item.username}}</div>
+                    <@security.authorize access="hasRole('haiyiya')">
+                        <div class="item-del">×</div>
+                    </@security.authorize>
+                </div>
+            </div>
+            {{# }) }}
+        </script>
+    </div>
+
+    <div class="layui-col-xs10" style="padding: 0px 20px;">
+        <div class="layui-tab layui-tab-card">
+            <ul class="layui-tab-title">
+                <li class="layui-this">角色组</li>
+                <li>记账组</li>
+                <li>字典管理</li>
+            </ul>
+            <div class="layui-tab-content" style="">
+                <div class="layui-tab-item layui-show">
+                    <iframe class="tab-iframe" src="/role"></iframe>
+                </div>
+                <div class="layui-tab-item">
+                    <iframe class="tab-iframe" preSrc="/payGroup"></iframe>
+                </div>
+                <div class="layui-tab-item">
+                    <iframe class="tab-iframe" preSrc="/dic"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="userForm" style="display: none;">
+        <form class="layui-form login" method="post" action="" style="margin: 35px;">
+            <input type="hidden" name="id" id="id">
+            <input type="hidden" name="header" id="header">
+            <div style="float: left;margin-right: 30px;">
+                <img src="/static/images/transparent.png" class="headerImg" id="headerImg">
+            </div>
+            <div style="float: left;">
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <input type="text" name="username" lay-verify="required" autocomplete="off" placeholder="用户名" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <input type="password" name="password" lay-verify="required" autocomplete="off" placeholder="密码" class="layui-input">
+                    </div>
+                </div>
+            </div>
+            <div style="clear: both;">
+                <button style="float: right;margin-right: 6px;margin-top: 10px;width: 120px;" class="layui-btn" lay-submit="" lay-filter="add">添加</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function fitIframeHeight(){
+            var iframe= $('.layui-show iframe');
+            if(iframe.length>0){
+                iframe[0].height=iframe.contents().find('div').height() + 5;
+            }
+        }
+
+        layui.use(['form','laytpl','laypage','element','upload'],function(){
+            var form=layui.form;
+            var laytpl = layui.laytpl;
+            var laypage = layui.laypage;
+            var element = layui.element;
+            var upload = layui.upload;
+            var search={};
+
+            $('.layui-tab-title li').click(function(){
+                var elem = $('.layui-tab-item iframe').eq($('.layui-tab-title li').index(this));
+                if((!elem.attr('src'))&&elem.attr('preSrc')){
+                    elem.attr('src',elem.attr('preSrc'));
+                }
+            })
+
+            //普通图片上传
+            var uploadInst = upload.render({
+                elem: '#headerImg'
+                ,url: '/upload'
+                ,multiple: true
+                ,before: function(obj){
+                    //预读本地文件示例，不支持ie8
+                    obj.preview(function(index, file, result){
+                        $('#headerImg').attr('src', result); //图片链接（base64）
+                    });
+                }
+                ,done: function(res){
+                    //如果上传失败
+                    if(res.code > 0){
+                        return layer.msg('上传失败');
+                    }else{
+                        $('#header').val(res.data.src);
+                    }
+                }
+            });
+
+            initUser();
+            function initUser(paras){
+                paras = $.extend({page:1,limit:15},paras);
+                $.post("/user/list",paras,function success(data){
+                    $('#userList').html(laytpl(userTmp.innerHTML).render(data.data));
+
+                    $('.item').click(function(){
+                        var userId = $(this).attr('id');
+                        var iframeWin = $('.layui-show iframe')[0].contentWindow;
+                        if(typeof(iframeWin.addRoleUser) == 'function') {
+                            iframeWin.addRoleUser(userId);
+                        }
+                        if(typeof(iframeWin.addPayUser) == 'function') {
+                            iframeWin.addPayUser(userId);
+                        }
+                    });
+
+                    $('.item-del').click(function(){
+                        $.post("/user/del", {
+                            ids: $(this).prev().attr('id')
+                        }, function success(data) {
+                            if(data.success){
+                                initUser();
+                            }else{
+                                layer.msg(data.msg);
+                            }
+                        }, "json");
+                        return false;
+                    })
+
+                    if (paras.page == 1) {
+                        laypage.render({
+                            elem: 'userTurn',
+                            count: data.data.total,
+                            limit: paras.limit,
+                            layout: ['page','skip'],
+                            theme: '#bfbfbf',
+                            jump: function(obj, first) {
+                                if (!first) {
+                                    paras = $.extend(paras, {
+                                        page: obj.curr,
+                                        limit: obj.limit
+                                    });
+                                    initUser(paras)
+                                }
+                                $('.layui-laypage-skip').css('display','none');
+                            }
+                        });
+                    }
+                },"json");
+            }
+
+            form.on('submit(add)', function(data){
+                var elem = $(this);
+                elem.attr('disabled','disabled');
+                $.post("/user/insert", data.field, function success(data) {
+                    elem.removeAttr('disabled');
+                    if(data.success) {
+                        layer.msg(JSON.stringify(data.data));
+                        layer.close(userFormIndex);
+
+                        initUser();
+                    }else{
+                        layer.msg(data.msg);
+                    }
+                }, "json");
+                return false;
+            });
+
+            $('.layui-layout-left .layui-nav-item').click(function(){
+                $('.layui-this').removeClass('layui-this');
+                $(this).addClass('layui-this');
+            })
+
+            $('.layui-layout-left .layui-nav-child dd').click(function(){
+                layer.msg($(this).find('a').html());
+            })
+
+            $('.toAdd').click(function(){
+                $(this).removeClass('layui-this');
+                $('#userForm input').val('');
+                $('#headerImg').attr('src','/static/images/transparent.png');
+                userFormIndex = layer.open({
+                    title: '添加用户',
+                    type: 1,
+                    area: ['435px', '270px'],
+                    content: $('#userForm')
+                });
+            })
+        })
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<#macro nav>
+    <div class="layui-header" style="background-color: #009688;">
+        <ul class="layui-nav layui-bg-green layui-layout-left">
+            <li class="layui-nav-item"><a>LYML</a></li>
+            <li class="layui-nav-item layui-this"><a>#FF4081</a></li>
+            <li class="layui-nav-item"><a>小尘寰</a></li>
+            <li class="layui-nav-item">
+                <a href="javascript:;">shatpanio</a>
+                <dl class="layui-nav-child">
+                    <dd><a>haiyiya</a></dd>
+                    <dd><a>haierya</a></dd>
+                    <dd><a>嗨一呀</a></dd>
+                </dl>
+            </li>
+        </ul>
+        <ul class="layui-nav layui-bg-green layui-layout-right">
+            <li class="layui-nav-item toAdd"><a href="javascript:;" style="font-size: 24px;">+</a></li>
+            <li class="layui-nav-item" lay-unselect="">
+                <a href="javascript:;"><img src="${user.header!'/static/images/header.png'}" class="layui-nav-img">${user.username!''}</a>
+                <dl class="layui-nav-child">
+                    <dd><a href="#">个人主页</a></dd>
+                    <dd><a href="/logout">退出登录</a></dd>
+                </dl>
+            </li>
+        </ul>
+    </div>
+</#macro>

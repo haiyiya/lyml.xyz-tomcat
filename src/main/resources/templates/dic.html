@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<#assign security=JspTaglibs["http://www.springframework.org/security/tags"] />
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/layui/css/layui.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/demo1.css">
+    <link rel="stylesheet" type="text/css" href="/static/zTree_v3/css/zTreeStyle/zTreeStyle.css">
+    <link rel="stylesheet" type="text/css" href="/static/zTree_v3/css/outlookStyle/outlookStyle.css">
+    <script src="/static/layui/layui.js"></script>
+    <script src="/static/layui/js/jquery-3.3.1.min.js"></script>
+    <script src="/static/zTree_v3/js/jquery.ztree.core.js"></script>
+    <script src="/static/zTree_v3/js/jquery.ztree.exedit.js"></script>
+    <title>LTML的一个页面</title>
+    <style>
+        .layui-table-cell .layui-form-checkbox[lay-skin="primary"]{top: -1px;}
+    </style>
+</head>
+<body>
+    <div>
+        <div class="layui-col-xs2" style="width: 205px;max-height: 510px;overflow-y: auto; overflow-x: hidden;">
+            <ul id="tree" class="ztree" style="width:190px;"></ul>
+        </div>
+        <div class="layui-col-xs9" style="padding-left: 10px;">
+            <button type="button" class="layui-btn layui-btn-sm add"><i class="iconfont">&#xe634;</i>添加</button>
+            <button type="button" class="layui-btn layui-btn-sm del"><i class="iconfont">&#xe738;</i>删除</button>
+
+            <table class="layui-table" lay-filter="gride" lay-data="{id:'gride', cellMinWidth: 80, page: true, limit:10}">
+                <thead>
+                    <tr>
+                        <th lay-data="{type:'checkbox'}">ID</th>
+                        <th lay-data="{field:'id', width:150 }">标识</th>
+                        <th lay-data="{field:'name', width:250 ,edit: 'text'}">名称</th>
+                        <th lay-data="{field:'sort', width:150 ,edit: 'text'}">排序</th>
+                        <th lay-data="{field:'remark' ,edit: 'text'}">备注</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
+    <script>
+        parent.fitIframeHeight();
+
+        layui.use(['form','table'],function(){
+            var form=layui.form;
+            var table = layui.table;
+            var search = {};
+
+            var setting = {
+                view : {
+                    showLine: false,
+                    showIcon: false,
+                    selectedMulti: false,
+                    dblClickExpand: false,
+                    addDiyDom: addDiyDom
+                },
+                async: {
+                    enable: true,
+                    url:"/dic/tree",
+                    autoParam:["id", "name=n", "level=lv"],
+                    otherParam:{"otherParam":"zTreeAsyncTest"}
+                },
+                data: {
+                    key: {
+                        name: "name"
+                    },
+                    simpleData: {
+                        enable: true,
+                        idKey: "id",
+                        pIdKey: "pid"
+                    }
+                },callback: {
+                    onClick: function(event, treeId, treeNode, clickFlag){
+                        if (treeNode.id!=0 && treeNode.isParent) {
+                            zTreeObj.expandNode(treeNode);//如果是父节点，则展开该节点
+                        }
+
+                        search.pid = treeNode.id;
+                        initTable();
+                    }
+                }
+            };
+
+            var zTreeObj = $.fn.zTree.init($("#tree"), setting,[{id:0,name:"字典",isParent:true,open:true}]);
+            var node=zTreeObj.getNodeByParam("id", 0);
+            zTreeObj.selectNode(node);
+            zTreeObj.expandNode(node, true, false, false);
+            $("#tree").addClass("showIcon");
+
+            function isPositiveInteger(s){//是否为正整数
+                var re = /^[0-9]+$/ ;
+                return re.test(s)
+            }
+
+            $(".add").click(function(){
+                var pid = 0;
+                if(zTreeObj.getSelectedNodes().length>0){
+                    pid=zTreeObj.getSelectedNodes()[0].id;
+                }
+                $.post("/dic/save",{pid:pid,sort:0},function success(data){
+                    if(data.success){
+                        refreshNode(pid);
+                        initTable();
+                    }else{
+                        layer.alert(data.msg);
+                    }
+                },"json");
+            });
+
+            $(".del").click(function(){
+                var checkStatus = table.checkStatus('gride');
+                if(checkStatus.data.length<1){
+                    layer.alert("请选择记录");
+                }else{
+                    layer.confirm('确定删除选中条目(包括子条目)吗？', function(index){
+                        var pid = "";
+                        var ids = [];
+                        $.each(checkStatus.data,function success(index,item){
+                            ids.push(item.id);
+                            pid = item.pid;
+                        })
+                        $.post("/dic/del",{ids:ids.join(";")},function success(data){
+                            layer.msg(data.msg);
+                            refreshNode(pid);
+                            initTable();
+                        },"json");
+                    });
+                }
+            });
+
+            //监听单元格编辑
+            table.on('edit(gride)', function(obj){
+                var value = obj.value //得到修改后的值
+                    ,dataField = obj.data //得到所在行所有键值
+                    ,field = obj.field; //得到字段
+                if(field=="sort"&&!isPositiveInteger(value)){
+                    var that = this;
+                    layer.tips('输入内容错误！', that); //在元素的事件回调体中，follow直接赋予this即可
+                    initTable()
+                    return ;
+                }
+                if(field=="name"&&value==""){
+                    var that = this;
+                    layer.tips('名称不能为空！', that); //在元素的事件回调体中，follow直接赋予this即可
+                    initTable()
+                    return ;
+                }
+
+                delete dataField.ctime;
+                delete dataField.subDic;
+                $.post("/dic/save",dataField,function success(data){
+                    if(data.success){
+                        refreshNode(dataField.pid);
+                    }else{
+                        layer.alert(data.msg);
+                    }
+                },"json");
+            });
+
+            function refreshNode(id) {
+                /*根据 treeId 获取 zTree 对象*/
+                var type = "refresh",
+                    silent = false,
+                    /*获取 zTree 当前被选中的节点数据集合*/
+                    nodes = zTreeObj.getNodesByParam("id", id, null);
+                nodes[0].isParent = true;
+                zTreeObj.selectNode(nodes[0]);
+                zTreeObj.reAsyncChildNodes(nodes[0], type, silent);
+            }
+
+            initTable();
+            function initTable(){
+                table.reload('gride', {
+                    url: '/dic/list'
+                    ,where: {data:JSON.stringify(search)} //设定异步数据接口的额外参数
+                    ,done: function(res, curr, count){
+                        parent.fitIframeHeight();
+                    }
+                });
+            }
+
+            function addDiyDom(treeId, treeNode) {
+                var spaceWidth = 5;
+                var switchObj = $("#" + treeNode.tId + "_switch"),
+                    icoObj = $("#" + treeNode.tId + "_ico");
+                switchObj.remove();
+                icoObj.before(switchObj);
+                if (treeNode.level > 1) {
+                    var spaceStr = "<span style='display: inline-block;width:" + (spaceWidth * treeNode.level)+ "px'></span>";
+                    switchObj.before(spaceStr);
+                }
+            }
+        })
+    </script>
+</body>
+</html>

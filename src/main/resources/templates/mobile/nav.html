@@ -1,0 +1,28 @@
+<#macro navMobile>
+<#assign security=JspTaglibs["http://www.springframework.org/security/tags"] />
+<div class="layui-header">
+    <ul class="layui-nav layui-bg-green layui-layout-left">
+        <li class="layui-nav-item"><a href="/">LYML</a></li>
+    </ul>
+    <ul class="layui-nav layui-bg-green layui-layout-right">
+        <!--<li class="layui-nav-item toAdd"><a href="javascript:;" style="font-size: 24px;">+</a></li>-->
+        <li class="layui-nav-item addMessage"><a href="#">say</a></li>
+        <li class="layui-nav-item" lay-unselect="">
+            <a href="javascript:;"><img id="myImg" src="${user.header!'/static/images/header.png'}" class="layui-nav-img"><span>${user.username!''}</span></a>
+            <dl class="layui-nav-child">
+                <@security.authorize access="hasRole('pay')">
+                    <dd><a class="payNote">记账</a></dd>
+                </@security.authorize>
+                <dd><a class="my">个人主页</a></dd>
+                <dd><a href="/logout">退出登录</a></dd>
+            </dl>
+        </li>
+    </ul>
+</div>
+<#if user.group??&&user.group!="">
+<div style=" position: fixed; right: 48px;top: 46px;text-align: center;height: 100px;z-index: 95;">
+    <div style="border-left: 1px solid #FF4081;width: 0px;height: 43px; margin: auto;"></div>
+    <div style="border: 1px solid #FF4081;color: #FF4084;border-radius: 3px;padding: 1px 6px;">${user.group}</div>
+</div>
+</#if>
+</#macro>

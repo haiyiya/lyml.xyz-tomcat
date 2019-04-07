@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/layui/css/layui.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/demo1.css">
+    <script src="/static/layui/layui.js"></script>
+    <script src="/static/layui/js/jquery-3.3.1.min.js"></script>
+    <title>老妈喊我吃饭</title>
+    <style>
+        .item-header img{width:20px;height:20px;border-radius:50%;}
+        /*导航栏左边距*/
+        .layui-layout-left{left:0px;}
+        /*表单左边距*/
+        .layui-input-block{margin-left:0px;}
+        /*导航栏指示器颜色*/
+        .layui-nav .layui-this:after,.layui-nav-bar,.layui-nav-tree .layui-nav-itemed:after{background-color:#a1d3e8;}
+        /*导航栏鼠标指针*/
+        .layui-nav a{cursor:default;}
+        img:hover{border-color:#ff4081;}
+        .image-box{width:150px;height:100px;background:#ff4081;float:left;}
+        .layui-header{background-color:#009688;position:fixed;width:100%;top:0px;background-color:#009688;}
+        .type{border:1px solid;margin-left:10px;padding:0 2px;font-size:12px;}
+        .layui-form-item{clear:inherit;margin-bottom: 0px;}
+        .btn-symbol{padding:0 !important;font-size:24px !important;border-radius:3px 0 0 3px !important;color:#fff !important;border-width:0 !important;}
+        .btn-symbol-plus{background-color:#ff4081 !important;}
+        .btn-symbol-minus{background-color:#009688 !important;}
+        .input-amount-plus{border-color:#FF4081 !important;border-radius:0px 2px 2px 0px !important;}
+        .input-amount-minus{border-color:#009688 !important;border-radius:0px 2px 2px 0px !important;}
+        #calcDiv .layui-table td, #calcDiv .layui-table th{padding:9px;}
+    </style>
+</head>
+<body>
+    <#assign security=JspTaglibs["http://www.springframework.org/security/tags"] />
+    <div class="layui-header">
+        <ul class="layui-nav layui-bg-green layui-layout-left">
+            <li class="layui-nav-item"><a href="/">LYML</a></li>
+        </ul>
+        <ul class="layui-nav layui-bg-green layui-layout-right">
+            <!--<li class="layui-nav-item toAdd"><a href="javascript:;" style="font-size: 24px;">+</a></li>-->
+            <li class="layui-nav-item calc"><a href="#">结算</a></li>
+            <li class="layui-nav-item" lay-unselect="">
+                <a href="javascript:;"><img id="myImg" src="${user.header!'/static/images/header.png'}" class="layui-nav-img"><span>${user.username!''}</span></a>
+                <dl class="layui-nav-child">
+                    <@security.authorize access="hasRole('pay')">
+                    <dd><a class="payNote">记账</a></dd>
+                </@security.authorize>
+                <dd><a class="my">个人主页</a></dd>
+                <dd><a href="/logout">退出登录</a></dd>
+                </dl>
+            </li>
+        </ul>
+    </div>
+    <#if user.group??&&user.group!="">
+    <div style=" position: fixed; right: 48px;top: 46px;text-align: center;height: 100px;z-index: 95;">
+        <div style="border-left: 1px solid #FF4081;width: 0px;height: 43px; margin: auto;"></div>
+        <div style="border: 1px solid #FF4081;color: #FF4084;border-radius: 3px;padding: 1px 6px;">${user.group}</div>
+    </div>
+    </#if>
+    <div id="messageDiv" style="margin-top: 65px;">
+        <form class="layui-form" action="">
+            <button class="layui-btn layui-btn-primary layui-col-xs1 btn-symbol btn-symbol-minus" style="padding: 0;" type="button">-</button>
+            <div class="layui-col-xs11">
+                <div class="layui-form-item layui-col-xs6">
+                    <div class="layui-input-block">
+                        <input type="number" name="amount" value="" lay-verify="required" autocomplete="off" placeholder="金额" class="layui-input input-amount-minus">
+                    </div>
+                </div>
+                <div class="layui-form-item layui-col-xs6">
+                    <div class="layui-input-block">
+                        <input type="hidden" id="typeName" name="typeName">
+                        <select id="sex" name="typeId" lay-verify="required" lay-filter="typeId">
+                            <option value="" selected >请选择</option>
+                            <#list types as type>
+                                <option value="${type.id}">${type.name!''}</option>
+                            </#list>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-form-item layui-col-xs10">
+                <div class="layui-input-block">
+                    <input type="text" name="remarks" value="" autocomplete="off" placeholder="备注" class="layui-input">
+                </div>
+            </div>
+            <button class="layui-btn layui-col-xs2"  lay-submit lay-filter="save">添加</button>
+            <div style="clear: both;"></div>
+        </form>
+        <div id="msgDiv" class="flow-default layui-timeline" style="overflow:auto; overflow-x:hidden;padding: 16px;">
+        </div>
+    </div>
+
+    <script id="msgTmp" type="text/html">
+        {{#  layui.each(d.records, function(index, item){ }}
+        <li class="layui-timeline-item {{item.isNew?'new':''}}">
+            <i class="layui-icon layui-timeline-axis"><div class="item-header"><img src="{{(item.header)?item.header:'/static/images/header_gray.png'}}"></div></i>
+            <div class="layui-timeline-content layui-text">
+                <p class="layui-timeline-title">{{item.createTime}}<a class="type">{{item.typeName||''}}</a></p>
+                {{#  if(item.amount>0){}}
+                <h3 style="color: #FF4081;margin-bottom: 3px;">
+                    {{item.amount}}
+                </h3>
+                {{#  }else{}}
+                <h3 style="color: #009688;margin-bottom: 3px;">
+                    {{item.amount}}
+                </h3>
+                {{# }}}
+                <p style="font-size: 13px;">{{item.remarks}}</p>
+            </div>
+        </li>
+        {{# }) }}
+    </script>
+
+    <script>
+        layui.use(['form','laytpl','flow','element','upload'],function(){
+            $("#userDiv").height($(window).height()-65);
+
+            var form=layui.form;
+            var laytpl = layui.laytpl;
+            var flow = layui.flow;
+            var element = layui.element;
+            var upload = layui.upload;
+
+            var search={};
+
+            initMsg();
+            function initMsg(){
+                $('#msgDiv').html('');
+                flow.load({
+                    elem: '#msgDiv'
+                    ,isAuto: true
+                    ,done: function(page, next){
+                        $.post("/payNote/list",{page:page,limit:10},function success(data){
+                            if(data.success){
+                                var elem = $('#msgDiv .new');
+                                removeLastPayNote(elem.length);
+                                elem.removeClass('new');
+                                next(laytpl(msgTmp.innerHTML).render(data.data), page < Math.ceil(data.data.total/data.data.size));
+                            }else{
+                                $.alert(data.msg);
+                            }
+                        },"json");
+                    }
+                });
+            }
+
+            $('.calc').click(function(){
+                var loading = layer.load(0, {shade: false});
+                $.post("/payNote/calc/${payGroup.id}",{},function success(data){
+                    if(data.success) {
+                        var htmlStr = '<table class="layui-table">\n' +
+                            '        <colgroup>\n' +
+                            '            <col>\n' +
+                            '            <col>\n' +
+                            '            <col>\n' +
+                            '        </colgroup>\n' +
+                            '        <thead>\n' +
+                            '        <tr>\n' +
+                            '            <th>姓名</th>\n' +
+                            '            <th>支出</th>\n' +
+                            '            <th>支付对方</th>\n' +
+                            '            <th>结算</th>\n' +
+                            '        </tr>\n' +
+                            '        </thead>\n' +
+                            '        <tbody>\n';
+                        $.each(data.data, function (index, item) {
+                            htmlStr += '<tr>\n' +
+                                '            <td>' + item.userName + '</td>\n' +
+                                '            <td>' + item.payOut + '</td>\n' +
+                                '            <td>' + item.payTo + '</td>\n' +
+                                '            <td>' + (item.payShould || '-') + '</td>\n' +
+                                '        </tr>\n';
+
+                        });
+
+                        htmlStr += '</tbody>\n' +
+                            '    </table>';
+
+                        $('#calcDiv').html(htmlStr);
+                        layer.open({
+                            type: 1,
+                            title: false,
+                            content: $('#calcDiv')
+                        });
+                        layer.close(loading);
+                    }else{
+                        layer.msg(data.msg);
+                    }
+                },"json");
+            })
+
+            $('.btn-symbol').click(function(){
+                if($(this).html()=='-'){
+                    $(this).html('+');
+                    $('.btn-symbol-minus').removeClass('btn-symbol-minus').addClass('btn-symbol-plus');
+                    $('.input-amount-minus').removeClass('input-amount-minus').addClass('input-amount-plus');
+                }else{
+                    $(this).html('-');
+                    $('.btn-symbol-plus').removeClass('btn-symbol-plus').addClass('btn-symbol-minus');
+                    $('.input-amount-plus').removeClass('input-amount-plus').addClass('input-amount-minus');
+                }
+            });
+
+            form.on('select(typeId)', function(data) {
+                $('#typeName').val(data.elem[data.elem.selectedIndex].text);
+            });
+
+            function removeLastPayNote(num){
+                for(var i = 0;i<num;i++){
+                    $('#msgDiv .layui-timeline-item').last().remove();
+                }
+            }
+
+            form.on('submit(save)', function(data){
+                var elem = $(this);
+                elem.attr('disabled','disabled');
+
+                if($('.btn-symbol').html()=='-'){
+                    data.field.amount = - data.field.amount;
+                }
+
+
+                var loading = layer.load(0, {shade: false});
+                $.post("/payNote/save", data.field, function success(data) {
+                    layer.close(loading);
+                    elem.removeAttr('disabled');
+                    if(data.success) {
+                        data.data.isNew = 1;
+                        data.data.header = $('#myImg').attr("src");
+                        //layer.msg('保存成功');
+                        $('#msgDiv').prepend(laytpl(msgTmp.innerHTML).render({records:[data.data]}));
+                        $('form input').val('');
+                        $('form select').val('');
+                        form.render('select');
+                    }else{
+                        layer.msg(data.msg);
+                    }
+                }, "json");
+                return false;
+            });
+        })
+    </script>
+</body>
+<div id="calcDiv" style="display:none;">
+
+</div>
+</html>

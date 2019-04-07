@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<#assign security=JspTaglibs["http://www.springframework.org/security/tags"] />
+<head>
+    <meta charset="UTF-8">
+    <script src="/static/layui/js/jquery-3.3.1.min.js"></script>
+    <title>How are you</title>
+    <style>
+        html{height:100%;}
+        body{background-color:#333;margin:0;height:100%;}
+        .scroll{}
+        .scroll::-webkit-scrollbar{width:10px;height:10px;}
+        /*正常情况下滑块的样式*/
+        .scroll::-webkit-scrollbar-thumb{background-color:#333;}
+        /*鼠标悬浮在该类指向的控件上时滑块的样式*/
+        .scroll:hover::-webkit-scrollbar-thumb{background-color:#444;}
+        /*鼠标悬浮在滑块上时滑块的样式*/
+        .scroll::-webkit-scrollbar-thumb:hover{background-color:#444;}
+        /*正常时候的主干部分*/
+        .scroll::-webkit-scrollbar-track{background-color:transparent;}
+        /*鼠标悬浮在滚动条上的主干部分*/
+        .scroll::-webkit-scrollbar-track:hover{background-color:transparent;}
+        .result{height:100%;width:900px;margin-left:200px;background-color:rgb(51,51,51);color:rgb(255,255,255);padding:10px;font-family:'黑体';overflow-y:scroll;cursor:text;}
+        .input{background:transparent;border:0px;outline:none;color:#FFF;width:100%;font-size:16px;font-family:'黑体';}
+        .name{color:#369c6e;}
+        .alias{color:#ff6666;}
+        .source1{color:#FFF;background-color:#FF4081;}
+        .source2{color:#FFF;background-color:#FF4081;}
+        .reference{color:#FFF;background-color:#FF4081;}
+    </style>
+</head>
+<body>
+    <div class="result scroll"><input class="input"/></div>
+    <script>
+        var oResult = $('.result');
+        var oInput = $('.input');
+        var timer;
+
+        oResult.height(oResult.height()-20);
+        oInput.val('>>> ');
+        oInput.focus();
+
+        var isPosting = false;
+        oInput.bind('keypress',function(event){
+            if(event.keyCode == "13"){
+                var str = oInput.val();
+                oInput.before(str + '<br>');
+                oInput.val('>>> ');
+                oInput.hide();
+
+                if(isPosting){
+                    return false;
+                }
+                isPosting = true;
+                $.post(
+                    '/medicine/searchList',
+                    {search: str.substring(4,str.length)},
+                    function(data) {
+                        if(data.success){
+                            printSearchDate(data.data, 0);
+                        }else{
+
+                        }
+                    },
+                    'json'
+                );
+            }
+        });
+
+        function printSearchDate(data, index){
+            if(index < data.length){
+                timer = setTimeout(function(){
+                    var item = data[index];
+                    var str = '[' + (index + 1) + '].&nbsp;'
+                        + '<span class="name">' + item.name + '</span>' + '&nbsp;'
+                        + '<span class="alias">' + '别名' + '</span>' + '&nbsp;'
+                        + '<span class="source1">' + item.source1 + '</span>' + '&nbsp;'
+                        + '<span class="source2">' + item.source2 + '</span>' + '&nbsp;'
+                        + '<span class="reference">' + item.reference + '</span>' + '&nbsp;';
+                    oInput.before(str + '<br>');
+                    scrollToEnd();
+
+                    printSearchDate(data, index + 1);
+                },index === 0 ? 0 : 100);
+            }else{
+                clearTimeout(timer);
+                printOver();
+            }
+        }
+
+        function printOver(){
+            oInput.show();
+            oInput.focus();
+            scrollToEnd();
+            isPosting = false;
+        }
+
+        function scrollToEnd(){//滚动到底部
+            oResult.scrollTop(oResult.prop('scrollHeight'));
+        }
+
+        oResult.click(function(){
+            oInput.focus();
+        })
+    </script>
+</body>
+</html>

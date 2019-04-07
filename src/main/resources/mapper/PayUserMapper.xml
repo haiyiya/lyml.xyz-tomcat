@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lyml.demo1.mapper.PayUserMapper">
+    <select id="listByObj" parameterType="com.lyml.demo1.model.PayUser" resultType="com.lyml.demo1.model.PayUser">
+        SELECT * FROM payuser where 1=1
+        <if test="groupId != null and groupId  != ''">
+            and groupId  =#{groupId}
+        </if>
+        <if test="userId != null and userId  != ''">
+            and userId  =#{userId}
+        </if>
+    </select>
+</mapper>

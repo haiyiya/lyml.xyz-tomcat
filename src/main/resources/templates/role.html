@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<#assign security=JspTaglibs["http://www.springframework.org/security/tags"] />
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/layui/css/layui.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/demo1.css">
+    <script src="/static/layui/layui.js"></script>
+    <script src="/static/layui/js/jquery-3.3.1.min.js"></script>
+    <title>LTML的一个页面</title>
+    <style>
+        .btn-role:hover{background-color:#009688;color:#fff;}
+        .btn-role-selected{background-color:#009688;color:#fff;}
+        .btn-roleuser{background-color:#0096889e;border-radius:2px;margin:12px 14px 0px 0px;color:#fff;}
+        .btn-roleuser-del{position:absolute;background-color:#888888;color:#fff;width:16px;height:16px;text-align:center;border-radius:8px;right:7px;top:5px;cursor:pointer;}
+        /*表单左边距*/
+        .layui-input-block{margin-left:0px;}
+        .layui-input, .layui-textarea{height: 30px;width: 180px;}
+        form .layui-btn-sm {margin-bottom: 5px;}
+    </style>
+</head>
+<body>
+    <div>
+        <form class="layui-form" action="">
+            <div class="layui-form-item layui-col-xs2" style="clear:none; width: 180px;">
+                <div class="layui-input-block">
+                    <input type="text" name="name" autocomplete="off" placeholder="角色名" lay-verify="required" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item layui-col-xs2" style="clear:none; width: 180px;">
+                <div class="layui-input-block">
+                    <input type="text" name="code" autocomplete="off" placeholder="代码" lay-verify="required" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item layui-col-xs2" style="clear:none; width: 180px;">
+                <div class="layui-input-block">
+                    <input type="text" name="param" autocomplete="off" placeholder="参数" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item layui-col-xs2" style="clear:none; width: 180px;">
+                <div class="layui-input-block">
+                    <input type="number" name="sort" autocomplete="off" placeholder="排序" class="layui-input">
+                </div>
+            </div>
+            <button class="layui-btn layui-btn-sm" lay-submit lay-filter="saveRole"><i class="iconfont">&#xe634;</i>添加</button>
+        </form>
+        <br>
+        <div id="roleList"></div>
+
+        <script id="roleTmp" type="text/html">
+            <form class="layui-form" action="">
+                {{#  layui.each(d.records, function(index, item){ }}
+                    <button type="button" id="{{item.id}}" class="layui-btn layui-btn-primary layui-btn-sm btn-role">{{item.name||''}}{{(item.code?(' ['+item.code+']'):'')}}{{(item.param?(' ('+item.param+')'):'')}}</button>
+                {{# }) }}
+            </form>
+        </script>
+        <fieldset class="layui-elem-field layui-field-title" style="margin: 20px 0px 5px 0;">
+            <legend>包含的用户</legend>
+        </fieldset>
+        <div>
+            <div id="roleUserList">
+            </div>
+            <script id="roleUserTmp" type="text/html">
+                {{#  layui.each(d.records, function(index, item){ }}
+                <div style="width: -webkit-fit-content;float: left;position: relative;">
+                    <button type="button" class="layui-btn layui-btn-sm btn-roleuser">{{item.userName||''}}</button>
+                    <div id="{{item.id}}" class="btn-roleuser-del">×</div>
+                </div>
+                {{# }) }}
+            </script>
+            <div style="clear:both;"></div>
+        </div>
+    </div>
+    <script>
+        parent.fitIframeHeight();
+
+        var addRoleUser = function(){}
+
+        layui.use(['form','laytpl','laypage','element','upload'],function(){
+            var form=layui.form;
+            var laytpl = layui.laytpl;
+
+            form.on('submit(saveRole)',function(data){
+                $.post("/role/save", data.field, function success(data) {
+                    if(data.success) {
+                        initRole();
+                        $('form input').val('');
+                    }else{
+                        layer.msg(data.msg);
+                    }
+                }, "json");
+                return false;
+            });
+
+            addRoleUser = function(userId){
+                var roleElem = $('.btn-role-selected');
+
+                if(roleElem.length > 0){
+                    var roleId = roleElem.attr('id');
+
+                    $.post("/roleUser/save", {roleId:roleId,userId:userId}, function success(data) {
+                        if(data.success) {
+                            $('#roleUserList').append(laytpl(roleUserTmp.innerHTML).render({records:[data.data]}));
+
+                            parent.fitIframeHeight();
+
+                            $('.btn-roleuser-del').click(function(){
+                                var elem = $(this);
+                                var id = elem.attr('id');
+                                $.post("/roleUser/del", {
+                                    ids: id
+                                }, function success(data) {
+                                    if(data.success){
+                                        elem.parent().remove();
+                                    }else{
+                                        layer.alert(data.msg);
+                                    }
+                                }, "json");
+                            })
+                        }else{
+                            layer.msg(data.msg);
+                        }
+                    }, "json");
+                }
+            }
+
+            initRole();
+            function initRole(){
+                $.post("/role/list",{},function success(data){
+                    $('#roleList').html(laytpl(roleTmp.innerHTML).render({records:data.data}));
+                    form.render('checkbox')
+
+                    parent.fitIframeHeight();
+
+                    $('.btn-role').click(function(){
+                        $('.btn-role-selected').removeClass('btn-role-selected');
+                        $(this).addClass('btn-role-selected');
+
+                        var id = $(this).attr('id');
+                        initRoleUser(id);
+                    })
+                },"json");
+            }
+
+            function initRoleUser(id){
+                $.post("/roleUser/list",{roleId:id},function success(data){
+                    $('#roleUserList').html(laytpl(roleUserTmp.innerHTML).render({records:data.data}));
+                    form.render('checkbox')
+
+                    parent.fitIframeHeight();
+
+                    $('.btn-roleuser-del').click(function(){
+                        var elem = $(this);
+                        var id = elem.attr('id');
+                        $.post("/roleUser/del", {
+                            ids: id
+                        }, function success(data) {
+                            if(data.success){
+                                elem.parent().remove();
+                            }else{
+                                layer.alert(data.msg);
+                            }
+                        }, "json");
+                    })
+                },"json");
+            }
+        })
+    </script>
+</body>
+</html>

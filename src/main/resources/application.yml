@@ -1,0 +1,48 @@
+#spring
+spring:
+  datasource:
+    #mvn package -Dmaven.test.skip=true
+    url: jdbc:mysql://10.0.0.4:3306/demo1?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
+
+    username: root
+    password: password1
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    date-format: yyyy-MM-dd HH:mm
+    time-zone: GMT+8
+
+  #freemarker配置
+  freemarker:
+    suffix: .html
+    content-type: text/html
+    charset: utf-8
+    settings:
+      #数字格式化方式，无分隔符 '0'或'#'
+      number_format: '0'
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+      enabled: true
+
+#mybatis
+mybatis-plus:
+  #mapper xml扫描
+  mapper-locations: classpath:/mapper/*.xml
+  #实体扫描，多个package用逗号或者分号分隔
+  typeAliasesPackage: com.lyml.demo1.model
+  global-config:
+    #id生成方式，自增
+    id-type: 0
+    #字段下划线
+    db-column-underline: false
+
+#打印mybatis sql语句
+#logging:
+#  level:
+#    com.lyml.demo1.mapper: debug
+
+#自定义上传路径
+path:
+  upload: C:\upload\

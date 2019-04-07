@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lyml.demo1.mapper.PayNoteMapper">
+    <select id="listByObj" parameterType="com.lyml.demo1.model.PayNote" resultType="com.lyml.demo1.model.PayNote">
+        select p.*,u.header as header from paynote p
+        left join user u on u.id = p.userId
+        left join roleuser ru on ru.id = 44 and ru.userId = u.id
+        left join payuser pu on pu.userId = u.id
+        left join payuser pu1 on pu1.userId = #{userId} and pu1.groupId = pu.groupId
+        where pu1.id is not null or (p.userId = #{userId})
+        group by p.id
+        order by p.createTime desc
+    </select>
+
+    <select id="calcByPayGroupId" parameterType="map" resultType="map">
+        select pn.userId as userId,
+        any_value(pn.userName) as userName,
+        ROUND(sum(case pn.typeId when '1' then 0 else pn.amount end),1) as payOut,
+        ROUND(sum(case pn.typeId when '1' then pn.amount else 0 end),1) as payTo
+        from paygroup pg
+        left join payuser pu on pg.id = pu.groupId
+        left join paynote pn on pu.userId = pn.userId
+        where pg.id = #{payGroupId}
+        group by pn.userId
+    </select>
+
+
+</mapper>
