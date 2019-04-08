@@ -30,121 +30,273 @@
         .source1{color:#FFF;background-color:#FF4081;}
         .source2{color:#FFF;background-color:#FF4081;}
         .reference{color:#FFF;background-color:#FF4081;}
+        .j-k-l{color: #FFF;border-radius: 2px;background: linear-gradient(to top right, #5c68c7 10%, #ff4081 50%, #f9e822 90%);}
+        .m-n-b{color: #FFF;border-radius: 2px;background: linear-gradient(to top right, #46f129 10%, #9c3690 50%, #3497fd 90%);}
     </style>
 </head>
 <body>
-	<div id="test" class="result-test">&nbsp;</div>
+	<div id="test" class="result-test">&nbsp;<span>测试Test</span></div>
     <div class="result scroll"><div class="input-div"><span class="input-indicator"></span><input class="input"/></div></div>
     <script>
     	var lineHeight = $('.result-test').height();
-        var oResult = $('.result');//输出
-        var oResultLast;//本次输出，临时变量
-        var oInputDiv = $('.input-div');
-        var oInputIndicator = $('.input-indicator');
-        var oInput = $('.input');
-        var isPosting = false;
-        var timer;
+		var oResult = $('.result'); //输出
+		var oResultLast; //本次输出，临时变量
+		var oInputDiv = $('.input-div');
+		var oInputIndicator = $('.input-indicator');
+		var oInput = $('.input');
+		var isPosting = false;
+		var timer;
 
-        oResult.height(oResult.height()-20);
-        oInputIndicator.text('>>> ');
-        oInput.width(oInputDiv.width() - oInputIndicator.width());
-        oInput.focus();
+		var currResultDivs = [];
+		var currSearch = '';
 
-        oInput.bind('keypress',function(event){
-            if(event.keyCode == "13"){
-            	var indicator = oInputIndicator.text();
-                var str = oInput.val();
-                oInputDiv.before(indicator + str + '<br>');
-                oInputDiv.hide();
-                oInput.val('');
+		oResult.height(oResult.height() - 20);
+		oInputIndicator.text('>>> ');
+		oInput.width(oInputDiv.width() - oInputIndicator.width() - 1);
+		oInput.focus();
 
-                if(isPosting){
-                    return false;
-                }
-                isPosting = true;
-                $.post(
-                    '/medicine/searchList',
-                    {search: str},
-                    function(data) {
-                        if(data.success){
-                            printSearchList(data.data);
-                        }else{
+		oInput.bind('keypress', function(event) {
+		    if (event.keyCode == "13") {
+		        var indicatorStr = oInputIndicator.text();
+		        var inputStr = oInput.val();
+		        oInputDiv.before(indicatorStr + inputStr + '<br>');
+		        oInputDiv.hide();
+		        oInput.val('');
 
-                        }
-                    },
-                    'json'
-                );
-            }
-        });
+		        if(inputStr && inputStr.substring(0, 1) == '?'){
+		        	var cmdArr = inputStr.split(/[ -.]/);
+		        	if(cmdArr.length >= 2){
+		        		if(cmdArr[1] == 'about'){
+		        			printPrepare();
+
+						    var str = 'Database：<span class="m-n-b"> 嬌娃佐波 </span>' + '<br>' +
+						        'Program：<span class="j-k-l"> LYML </span>' + '<br>' +
+						        'github：<a href="https://github.com/haiyiya/lyml.xyz-tomcat" target="_blank" style="color:#4dc86f;">https://github.com/haiyiya/lyml.xyz-tomcat</a>' + '<br>';
+						    oResultLast.append(str);
+
+						    printStart(function(){
+		                        printOver();
+						    });
+		        		}
+		        	}
+		        }else if (/^\d+$/.test(inputStr)) {
+		            var index = inputStr;
+		            var id = getSelectedId(index);
+
+		            if (!id === false) {
+
+				        if (isPosting) {
+				            return false;
+				        }
+				        isPosting = true;
+		                $.post(
+		                    '/medicine/details', {
+		                        id: id
+		                    },
+		                    function(data) {
+		                        if (data.success) {
+		                            printSearchItem(data.data, function() {
+		                                printOver();
+		                            });
+		                        } else {
+		                            printText("接口请求错误", function() {
+		                                printOver();
+		                            });
+		                        }
+		                    },
+		                    'json'
+		                );
+		            } else {
+		                printText("记录选择错误", function() {
+		                    printOver();
+		                });
+		            }
+		        } else {
+		        	currSearch = inputStr;
+
+			        if (isPosting) {
+			            return false;
+			        }
+			        isPosting = true;
+		            $.post(
+		                '/medicine/searchList', {
+		                    search: currSearch
+		                },
+		                function(data) {
+		                    if (data.success) {
+		                        if (data.data.length > 0) {
+		                            printSearchList(data.data, function() {
+		                                printOver();
+		                            });
+		                        } else {
+		                            printText("没有找到记录", function() {
+		                                printOver();
+		                            });
+		                        }
+		                    } else {
+		                        printText("接口请求错误", function() {
+		                            printOver();
+		                        });
+		                    }
+		                },
+		                'json'
+		            );
+		        }
+		    }
+		});
+
+		//打印文字
+		function printText(text, fn) {
+		    if (text && text.length > 0) {
+		        printPrepare();
+		        oResultLast.append(text);
+
+		        printStart(fn);
+		    } else {
+		        if (fn) {
+		            fn();
+		        }
+		    }
+		}
+
+		//打印输出详细信息
+		function printSearchItem(item, fn) {
+		    printPrepare();
+
+		    var str = '名称：<span id="' + item.id + '" class="name">' + item.name + '</span>' + '&nbsp;&nbsp;' +
+		        '<span class="source1">' + item.source1 + '</span>' + '&nbsp;' +
+		        '<span class="source2">' + item.source2 + '</span>' + '&nbsp;<br>' +
+		        '别名：<span class="alias">' + item.alias + '</span>' + '<br>' +
+		        '引用文献：<span class="reference">' + item.reference + '</span>' + '<br>' +
+		        '详细信息：<span class="content">' + item.content + '</span>' + '<br>';
+		    oResultLast.append(str);
+
+		    printStart(fn);
+		}
 
 		//打印输出列表
-        function printSearchList(data){
-        	$.each(data, function(index, item){
-            	if(index === 0){
-            		oResultLast = $('<div class="result-last"></div>');
-            		oInputDiv.before(oResultLast);
-            	}
+		function printSearchList(data, fn) {
+		    if (data.length > 0) {
+		        $.each(data, function(index, item) {
+		            if (index === 0) {
+		                printPrepare();
+		            }
 
-        		var str = '[' + (index + 1) + '].&nbsp;'
-                    + '<span class="name">' + item.name + '</span>' + '&nbsp;'
-                    + '<span class="alias">' + '别名' + '</span>' + '&nbsp;'
-                    + '<span class="source1">' + item.source1 + '</span>' + '&nbsp;'
-                    + '<span class="source2">' + item.source2 + '</span>' + '&nbsp;'
-                    + '<span class="reference">' + item.reference + '</span>' + '&nbsp;';
-                oResultLast.append(str + '<br>');
-        	})
+		            var str = '[' + (index + 1) + '].&nbsp;' +
+		                '<span index="' + (index + 1) + '" id="' + item.id + '" class="name">' + item.name + '</span>' + '&nbsp;' +
+		                '<span class="alias">' + getRelativeAlias(item.alias) + '</span>' + '&nbsp;' +
+		                '<span class="source1">' + item.source1 + '</span>' + '&nbsp;' +
+		                '<span class="source2">' + item.source2 + '</span>' + '&nbsp;' +
+		                '<span class="reference">' + item.reference + '</span>' + '&nbsp;';
+		            oResultLast.append(str + '<br>');
+		        })
+		        currResultDivs = [oResultLast];
 
-        	var totalHeight = oResultLast.height();
-        	oResultLast.height(0);
-        	oResultLast.show();
-        	printResultLast(totalHeight);
-        }
+		        printStart(fn);
+		    }
+		}
 
-    	//逐行打印本次输出
-        function printResultLast(totalHeight){
-        	var resultLastHeight = oResultLast.height();
-        	if(resultLastHeight < totalHeight){
-	        	timer = setTimeout(function(){
-	                oResultLast.height(resultLastHeight + lineHeight);
-	                scrollToEnd();
+		//准备打印 - 放入结果div
+		function printPrepare() {
+		    oResultLast = $('<div></div>');
+		    oInputDiv.before(oResultLast);
+		}
 
-	                printResultLast(totalHeight);
-	            },resultLastHeight === 0 ? 0 : 100);
-        	}else{
-                clearTimeout(timer);
-                printOver();
-        	}
-        }
+		//开始打印 - 计算打印高度后开始打印
+		function printStart(fn) {
+		    var totalHeight = oResultLast.height();
+		    oResultLast.addClass('result-last');
+		    oResultLast.height(0);
+		    oResultLast.show();
+		    printByLine(totalHeight, fn);
+		}
 
-        function printOver(){
-            oInputDiv.show();
-            oInput.focus();
-            scrollToEnd();
-            isPosting = false;
-        }
+		//打印结束 - 移除打印标记，恢复输入框，请求状态置为false
+		function printOver() {
+		    clearTimeout(timer);
+
+		    oResultLast.removeClass('result-last');
+
+		    // oInputIndicator.text(indicatorStr);
+		    // oInputIndicator.attr('mode', mode ? );
+		    oInputDiv.show();
+		    oInput.focus();
+		    scrollToEnd();
+		    isPosting = false;
+		}
+
+		//单击结果区输入框获得焦点
+		var x, y;
+		oResult.mousedown(function(event) { //获取鼠标按下的位置
+		    x = event.pageX;
+		    y = event.pageY;
+		});
+
+		oResult.mouseup(function(event) { //鼠标释放
+		    var newX = event.pageX;
+		    var newY = event.pageY;
+		    if (x && y && x == newX && y == newY) {
+		        oInput.focus();
+		    }
+
+		    x = null;
+		    y = null;
+		})
+
+		//获取选择项的id
+		function getSelectedId(index) {
+		    for (var i = 0; i < currResultDivs.length; i++) {
+		        var o = currResultDivs[i].find('span[index="' + index + '"]');
+		        if (o.length > 0) {
+		            return o.attr('id');
+		        }
+		    }
+		    return false;
+		}
+
+		//获得关联的别名
+		function getRelativeAlias(alias) {
+		    if (!alias || alias.length == 0) {
+		        return '';
+		    }
+
+		    if (currSearch && alias.indexOf(currSearch) > -1) {
+		        var aliasArr = alias.split('，');
+		        for (var i = 0; aliasArr; i++) {
+		            if (aliasArr[i].indexOf(currSearch) > -1) {
+		                return aliasArr[i];
+		            }
+		        }
+		    }
+
+		    return alias.length > 10 ? (alias.substring(0, 10) + '...') : alias;
+		}
+
+		//逐行打印本次输出
+		function printByLine(totalHeight, fn) {
+		    if (oResultLast.height() === 0) {
+		        oResultLastCurrHeight = 0;
+		    }
+
+		    if (oResultLastCurrHeight + 1 < totalHeight) {
+		        timer = setTimeout(function() {
+		            oResultLastCurrHeight += lineHeight;
+		            oResultLast.height(oResultLastCurrHeight);
+		            scrollToEnd();
+
+		            printByLine(totalHeight, fn);
+		        }, oResultLastCurrHeight === 0 ? 0 : 100);
+		    } else {
+		        if (fn) {
+		            fn();
+		        }
+		    }
+		}
 
 		//滚动到底部
-        function scrollToEnd(){
-            oResult.scrollTop(oResult.prop('scrollHeight'));
-        }
-
-        //单击结果区输入框获得焦点
-        var x,y;
-	    oResult.mousedown(function(event){ //获取鼠标按下的位置
-	        x = event.pageX;
-	        y = event.pageY;
-	    });
-
-	    oResult.mouseup(function(event){//鼠标释放
-	        var newX = event.pageX;
-	        var newY = event.pageY;
-	        if(x && y && x==newX && y==newY){
-	            oInput.focus();
-	        }
-
-	        x=null;
-	        y=null;
-	    })
+		function scrollToEnd() {
+		    oResult.scrollTop(oResult.prop('scrollHeight'));
+		}
     </script>
 </body>
 </html>
