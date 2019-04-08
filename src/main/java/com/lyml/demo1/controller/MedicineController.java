@@ -43,7 +43,7 @@ public class MedicineController extends BaseController {
         Page<Medicine> page = new Page<Medicine>(getIntPar("page"), getIntPar("limit", 10));
         Medicine medicine = new Medicine();
         medicine.setSearch(search);
-        page =  medicineService.listByObj(new Page<Medicine>(0,10), medicine);
+        page =  medicineService.listByObj(page, medicine);
         return renderSuccess(page.getTotal(), page.getRecords());
     }
 
