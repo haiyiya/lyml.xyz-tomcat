@@ -31,6 +31,16 @@ public class BaseController {
         return par;
     }
 
+    protected Integer getIntPar(String key, int defaultValue) {
+        int par = 0;
+        try {
+            par = Integer.parseInt(request.getParameter(key));
+            return par;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
     protected Long getLongPar(String key) {
         long par = 0L;
         try {

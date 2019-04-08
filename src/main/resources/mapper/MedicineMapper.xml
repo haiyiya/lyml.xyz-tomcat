@@ -2,14 +2,34 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lyml.demo1.mapper.MedicineMapper">
     <select id="listByObj" parameterType="com.lyml.demo1.model.Medicine" resultType="com.lyml.demo1.model.Medicine">
-        SELECT * FROM medicine where 1=1
+        SELECT id,name,alias,source1,source2,reference,createTime FROM medicine where 1=1
         <if test="search != null and search  != ''">
-            and (name like concat('%', #{search}, '%')
-            or alias like concat('%', #{search}, '%')
-            or reference like concat('%', #{search}, '%')
-            or source1 like concat('%', #{search}, '%')
-            or source2 like concat('%', #{search}, '%'))
+            and name = #{search}
         </if>
-        order by createTime desc
+        union
+        SELECT id,name,alias,source1,source2,reference,createTime FROM medicine where 1=1
+        <if test="search != null and search  != ''">
+            and name like concat('%', #{search}, '%')
+        </if>
+        union
+        SELECT id,name,alias,source1,source2,reference,createTime FROM medicine where 1=1
+        <if test="search != null and search  != ''">
+            and alias like concat('%', #{search}, '%')
+        </if>
+        union
+        SELECT id,name,alias,source1,source2,reference,createTime FROM medicine where 1=1
+        <if test="search != null and search  != ''">
+            and source1 like concat('%', #{search}, '%')
+        </if>
+        union
+        SELECT id,name,alias,source1,source2,reference,createTime FROM medicine where 1=1
+        <if test="search != null and search  != ''">
+            and source2 like concat('%', #{search}, '%')
+        </if>
+        union
+        SELECT id,name,alias,source1,source2,reference,createTime FROM medicine where 1=1
+        <if test="search != null and search  != ''">
+            and reference like concat('%', #{search}, '%')
+        </if>
     </select>
 </mapper>

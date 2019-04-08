@@ -7,7 +7,7 @@
     <title>How are you</title>
     <style>
         html{height:100%;}
-        body{background-color:#333;margin:0;height:100%;}
+        body{background-color:#333;margin:0;height:100%;font-family:'黑体';font-size:16px;}
         .scroll{}
         .scroll::-webkit-scrollbar{width:10px;height:10px;}
         /*正常情况下滑块的样式*/
@@ -20,8 +20,11 @@
         .scroll::-webkit-scrollbar-track{background-color:transparent;}
         /*鼠标悬浮在滚动条上的主干部分*/
         .scroll::-webkit-scrollbar-track:hover{background-color:transparent;}
-        .result{height:100%;width:900px;margin-left:200px;background-color:rgb(51,51,51);color:rgb(255,255,255);padding:10px;font-family:'黑体';overflow-y:scroll;cursor:text;}
-        .input{background:transparent;border:0px;outline:none;color:#FFF;width:100%;font-size:16px;font-family:'黑体';}
+        .result-test{display: none;}
+        .result{height:100%;width:900px;margin-left:200px;background-color:rgb(51,51,51);color:rgb(255,255,255);padding:10px;overflow-y:scroll;cursor:text;}
+        .result-last{overflow: hidden;display:none;}
+        .input-div{width: 100%;}
+        .input{font-family:'黑体';font-size:16px;background:transparent;border:0px;outline:none;color:#FFF;padding:0;}
         .name{color:#369c6e;}
         .alias{color:#ff6666;}
         .source1{color:#FFF;background-color:#FF4081;}
@@ -30,23 +33,30 @@
     </style>
 </head>
 <body>
-    <div class="result scroll"><input class="input"/></div>
+	<div id="test" class="result-test">&nbsp;</div>
+    <div class="result scroll"><div class="input-div"><span class="input-indicator"></span><input class="input"/></div></div>
     <script>
-        var oResult = $('.result');
+    	var lineHeight = $('.result-test').height();
+        var oResult = $('.result');//输出
+        var oResultLast;//本次输出，临时变量
+        var oInputDiv = $('.input-div');
+        var oInputIndicator = $('.input-indicator');
         var oInput = $('.input');
+        var isPosting = false;
         var timer;
 
         oResult.height(oResult.height()-20);
-        oInput.val('>>> ');
+        oInputIndicator.text('>>> ');
+        oInput.width(oInputDiv.width() - oInputIndicator.width());
         oInput.focus();
 
-        var isPosting = false;
         oInput.bind('keypress',function(event){
             if(event.keyCode == "13"){
+            	var indicator = oInputIndicator.text();
                 var str = oInput.val();
-                oInput.before(str + '<br>');
-                oInput.val('>>> ');
-                oInput.hide();
+                oInputDiv.before(indicator + str + '<br>');
+                oInputDiv.hide();
+                oInput.val('');
 
                 if(isPosting){
                     return false;
@@ -54,10 +64,10 @@
                 isPosting = true;
                 $.post(
                     '/medicine/searchList',
-                    {search: str.substring(4,str.length)},
+                    {search: str},
                     function(data) {
                         if(data.success){
-                            printSearchDate(data.data, 0);
+                            printSearchList(data.data);
                         }else{
 
                         }
@@ -67,41 +77,74 @@
             }
         });
 
-        function printSearchDate(data, index){
-            if(index < data.length){
-                timer = setTimeout(function(){
-                    var item = data[index];
-                    var str = '[' + (index + 1) + '].&nbsp;'
-                        + '<span class="name">' + item.name + '</span>' + '&nbsp;'
-                        + '<span class="alias">' + '别名' + '</span>' + '&nbsp;'
-                        + '<span class="source1">' + item.source1 + '</span>' + '&nbsp;'
-                        + '<span class="source2">' + item.source2 + '</span>' + '&nbsp;'
-                        + '<span class="reference">' + item.reference + '</span>' + '&nbsp;';
-                    oInput.before(str + '<br>');
-                    scrollToEnd();
+		//打印输出列表
+        function printSearchList(data){
+        	$.each(data, function(index, item){
+            	if(index === 0){
+            		oResultLast = $('<div class="result-last"></div>');
+            		oInputDiv.before(oResultLast);
+            	}
 
-                    printSearchDate(data, index + 1);
-                },index === 0 ? 0 : 100);
-            }else{
+        		var str = '[' + (index + 1) + '].&nbsp;'
+                    + '<span class="name">' + item.name + '</span>' + '&nbsp;'
+                    + '<span class="alias">' + '别名' + '</span>' + '&nbsp;'
+                    + '<span class="source1">' + item.source1 + '</span>' + '&nbsp;'
+                    + '<span class="source2">' + item.source2 + '</span>' + '&nbsp;'
+                    + '<span class="reference">' + item.reference + '</span>' + '&nbsp;';
+                oResultLast.append(str + '<br>');
+        	})
+
+        	var totalHeight = oResultLast.height();
+        	oResultLast.height(0);
+        	oResultLast.show();
+        	printResultLast(totalHeight);
+        }
+
+    	//逐行打印本次输出
+        function printResultLast(totalHeight){
+        	var resultLastHeight = oResultLast.height();
+        	if(resultLastHeight < totalHeight){
+	        	timer = setTimeout(function(){
+	                oResultLast.height(resultLastHeight + lineHeight);
+	                scrollToEnd();
+
+	                printResultLast(totalHeight);
+	            },resultLastHeight === 0 ? 0 : 100);
+        	}else{
                 clearTimeout(timer);
                 printOver();
-            }
+        	}
         }
 
         function printOver(){
-            oInput.show();
+            oInputDiv.show();
             oInput.focus();
             scrollToEnd();
             isPosting = false;
         }
 
-        function scrollToEnd(){//滚动到底部
+		//滚动到底部
+        function scrollToEnd(){
             oResult.scrollTop(oResult.prop('scrollHeight'));
         }
 
-        oResult.click(function(){
-            oInput.focus();
-        })
+        //单击结果区输入框获得焦点
+        var x,y;
+	    oResult.mousedown(function(event){ //获取鼠标按下的位置
+	        x = event.pageX;
+	        y = event.pageY;
+	    });
+
+	    oResult.mouseup(function(event){//鼠标释放
+	        var newX = event.pageX;
+	        var newY = event.pageY;
+	        if(x && y && x==newX && y==newY){
+	            oInput.focus();
+	        }
+
+	        x=null;
+	        y=null;
+	    })
     </script>
 </body>
 </html>

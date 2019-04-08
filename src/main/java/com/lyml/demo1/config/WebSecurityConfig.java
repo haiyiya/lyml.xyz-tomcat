@@ -41,7 +41,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http
                 .authorizeRequests()
                 //未经登录允许访问，如未登录时候
-                .antMatchers("/index", "/medicine", "/medicine/searchList", "/user/test1",
+                .antMatchers("/index", "/medicine", "/medicine/searchList", "/medicine/details", "/user/test1",
                         "/**/*.html",
                         "/**/*.js",
                         "/**/*.css",

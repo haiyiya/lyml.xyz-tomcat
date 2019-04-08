@@ -40,21 +40,18 @@ public class MedicineController extends BaseController {
     @RequestMapping(value="/searchList")
     @ResponseBody
     public Object searchList(@RequestParam String search) throws Exception {
+        Page<Medicine> page = new Page<Medicine>(getIntPar("page"), getIntPar("limit", 10));
         Medicine medicine = new Medicine();
         medicine.setSearch(search);
-        Page<Medicine> list =  medicineService.listByObj(new Page<Medicine>(0,10), medicine);
-        return renderSuccess(list.getRecords());
+        page =  medicineService.listByObj(new Page<Medicine>(0,10), medicine);
+        return renderSuccess(page.getTotal(), page.getRecords());
     }
 
-    @RequestMapping(value="/add")
+    @RequestMapping(value="/details")
     @ResponseBody
-    public Object add() {
-        Medicine medicine = JSONObject.parseObject(getStringPar("data"), new TypeReference<Medicine>() {});
-        if(medicineService.insertOrUpdate(medicine)){
-            return renderSuccess("添加成功");
-        }else{
-            return renderError("添加失败");
-        }
+    public Object details(@RequestParam Long id) {
+        Medicine medicine = medicineService.selectById(id);
+        return renderSuccess(medicine);
     }
 
     @RequestMapping(value = "/save", method = RequestMethod.POST)
