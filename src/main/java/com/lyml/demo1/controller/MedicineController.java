@@ -11,20 +11,29 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import javax.servlet.http.HttpServletRequest;
 import java.net.URLDecoder;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
 @Controller
 @RequestMapping("/medicine")
 public class MedicineController extends BaseController {
 
     @Autowired
-    IMedicineService medicineService;
+    private HttpServletRequest request;
 
+    @Autowired
+    IMedicineService medicineService;
 
     @RequestMapping("")
     public ModelAndView index(ModelAndView modelAndView) {
-        modelAndView.setViewName("/medicine");
+        String userAgent = request.getHeader("User-Agent");
+        if (userAgent != null && Pattern.matches(".*(iPhone|iPod|Android|ios|iPad).*", userAgent)) {
+            modelAndView.setViewName("mobile/medicine");
+        } else {
+            modelAndView.setViewName("medicine");
+        }
         return modelAndView;
     }
 

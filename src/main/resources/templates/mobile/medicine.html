@@ -2,29 +2,18 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no;">
     <script src="/static/layui/js/jquery-3.3.1.min.js"></script>
-    <title>How are you</title>
+    <title>How are you M</title>
     <style>
-        html{height:100%;}
-        body{background-color:#333;margin:0;height:100%;font-family:'黑体';font-size:16px;}
-        .scroll{}
-        .scroll::-webkit-scrollbar{width:10px;height:10px;}
-        /*正常情况下滑块的样式*/
-        .scroll::-webkit-scrollbar-thumb{background-color:#333;}
-        /*鼠标悬浮在该类指向的控件上时滑块的样式*/
-        .scroll:hover::-webkit-scrollbar-thumb{background-color:#444;}
-        /*鼠标悬浮在滑块上时滑块的样式*/
-        .scroll::-webkit-scrollbar-thumb:hover{background-color:#444;}
-        /*正常时候的主干部分*/
-        .scroll::-webkit-scrollbar-track{background-color:transparent;}
-        /*鼠标悬浮在滚动条上的主干部分*/
-        .scroll::-webkit-scrollbar-track:hover{background-color:transparent;}
+        html{height:100%;width:100%;}
+        body{background-color:#333;margin:0;width:100%;height:100%;font-size:1rem;}
         .result-test{display: none;}
-        .result{height:calc(100% - 20px);width:900px;margin-left:200px;background-color:rgb(51,51,51);color:rgb(255,255,255);padding:10px;overflow-y:scroll;cursor:text;}
-        .result-last-prepare{overflow: hidden;width:100%;}
+        .result{height:calc(100% - 20px);width:calc(100% - 20px);background-color:rgb(51,51,51);color:rgb(255,255,255);padding:10px;overflow-y:scroll;cursor:text;}
+        .result-last-prepare{width:100%;}
         .result-last{overflow: hidden;display:none;}
         .input-div{width: 100%;}
-        .input{font-family:'黑体';font-size:16px;background:transparent;border:0px;outline:none;color:#FFF;padding:0;}
+        .input{font-size:1rem;background:transparent;border:0px;outline:none;color:#FFF;padding:0;}
         .name{color:#369c6e;}
         .alias{color:#ff6666;}
         .source1{color:#FFF;background-color:#FF4081;}
@@ -249,28 +238,9 @@
 		    // oInputIndicator.text(indicatorStr);
 		    // oInputIndicator.attr('mode', mode ? );
 		    oInputDiv.show();
-		    oInput.focus();
 		    scrollToEnd();
 		    isPosting = false;
 		}
-
-		//单击结果区输入框获得焦点
-		var x, y;
-		oResult.mousedown(function(event) { //获取鼠标按下的位置
-		    x = event.pageX;
-		    y = event.pageY;
-		});
-
-		oResult.mouseup(function(event) { //鼠标释放
-		    var newX = event.pageX;
-		    var newY = event.pageY;
-		    if (x && y && x == newX && y == newY) {
-		        oInput.focus();
-		    }
-
-		    x = null;
-		    y = null;
-		})
 
 		//获取选择项的id
 		function getSelectedId(index) {
