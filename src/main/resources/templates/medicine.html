@@ -33,34 +33,40 @@
         .source1{color:#FFF;background-color:#FF4081;}
         .source2{color:#FFF;background-color:#FF4081;}
         .reference{color:#e4e4e4;}
+        .area-char-word{
+    	    padding: 0px;
+		    margin-top: -2px;
+		    margin-bottom: -1px;
+		    border: 0;
+		    outline: none;
+		    width: 100%;
+		    height: calc(100% - 0px);
+		    font-family: 黑体;
+		    font-size: 48px;
+		    color: rgb(255, 255, 255);
+		    background: rgb(51, 51, 51);
+        }
     </style>
 </head>
 <body>
 	<div id="test" class="result-test">&nbsp;<span>测试Test</span></div>
+	<div id="iamnewdriver" style="position: absolute;left: 0px;bottom: 60%;padding: 10px 20px;background: #222;color: #FFF;display: none;"><span style="display: block;margin-bottom: 8px;">终于等到你 💕</span>输入 ? 可查看帮助</div>
     <div class="result scroll">
-        <div class="input-div"><span class="input-indicator"></span><input class="input"/></div>
+        <div class="input-div"><span class="input-indicator"></span><input spellcheck="false" class="input"/></div>
     </div>
     <script src="/static/js/medicine.js"></script>
     <script>
         launch();
 
-        //单击结果区输入框获得焦点
-        var x, y;
-        oResult.mousedown(function(event) { //获取鼠标按下的位置
-            x = event.pageX;
-            y = event.pageY;
-        });
+    	if(!getCookie('iamnotnewdriver')){
+    		addCookie('iamnotnewdriver', 1)
 
-        oResult.mouseup(function(event) { //鼠标释放
-            var newX = event.pageX;
-            var newY = event.pageY;
-            if (x && y && x === newX && y === newY) {
-                oInput.focus();
-            }
-
-            x = null;
-            y = null;
-        })
+    		var oIamnewdriver = $("#iamnewdriver");
+    		oIamnewdriver.show();
+	        setTimeout(function(){
+	        	oIamnewdriver.animate({left:'-' + (oIamnewdriver.width() + 40) + 'px'});
+	        }, 4000)
+    	}
     </script>
 </body>
 </html>

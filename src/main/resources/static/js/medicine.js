@@ -2,7 +2,7 @@ var config = {
     // 平台
     platform: 'pc',
     // 行打印时间间隔
-    printInterval: 60,
+    printMode: getCookie('printmode') || 'line',
     // 列表别名长度
     listAliasLenght: 10
 }
@@ -22,8 +22,8 @@ var oInputIndicator = $('.input-indicator');
 var oInput = $('.input');
 
 // 初始化输入栏，不减1会导致换行
-oInputIndicator.text('>>> ');
-oInput.width(oInputDiv.width() - oInputIndicator.width() - 1);
+//oInputIndicator.text('>>> ');
+//oInput.width(oInputDiv.width() - oInputIndicator.width() - 1);
 
 // 网络请求标志位
 var isPosting = false;
@@ -35,9 +35,13 @@ var cmdData = {
     }
 };
 // 当前列表对象组
-var currResultDivs = [];
+var currResults = [];
 // 当前搜索关键字
-var currSearch = '';
+var currSearch = {
+    page: 0,
+    limit: 10,
+    search: ''
+};
 
 function launch(_config){
     if(typeof(_config) === 'object'){
@@ -78,15 +82,42 @@ oInput.bind('keypress', function(event) {
         oInputDiv.hide();
         oInput.val('');
 
-        if(inputStr.toLowerCase().indexOf('lyml') > -1){
+        if(!inputStr && currSearch.page > 0){
+            currSearch.page++;
+            searchList(true);
+
+        }else if(inputStr.toLowerCase().indexOf('lyml') > -1){
             printText(cmdData.getData('lyml'));
         }else if(inputStr && (inputStr.substring(0, 1) === '?' || inputStr.substring(0, 1) === '？')){
             if(inputStr.length === 1){
                 printText(cmdData.getData('help'));
             }else{
                 var cmdArr = inputStr.substring(1, inputStr.length).split(/[ -.]/);
-                if(cmdArr.length == 1){
-                    printText(cmdData.getData([cmdArr[0]]) || (cmdArr[0] + ' 不是内部或外部命令'));
+                if(cmdArr[0] == 'charword'){
+                    $('body').html('<textarea spellcheck="false" class="area-char-word"></textarea>');
+                }else if(cmdArr[0] == 'cls'){
+                    oResult.find('.result-last-prepare').remove();
+                    initSearch();
+                    currResults = [];
+
+                    oInputIndicator.text('>>> ');
+                    oInputDiv.show();
+                    oInput.focus();
+                }else{
+                    if(cmdArr.length == 1){
+                        printText(cmdData.getData([cmdArr[0]]) || (cmdArr[0] + ' 不是内部或外部命令'));
+                    }else{
+                        var fun = cmdArr[0] + '(';
+                        for(var i = 1; i < cmdArr.length; i++){
+                            fun += (i > 1 ? ',' : '') + '"' + cmdArr[i] + '"';
+                        }
+                        fun += ')';
+                        eval(fun);
+
+                        oInputIndicator.text('>>> ');
+                        oInputDiv.show();
+                        oInput.focus();
+                    }
                 }
             }
 
@@ -95,55 +126,81 @@ oInput.bind('keypress', function(event) {
             var id = getSelectedId(index);
 
             if (!id === false) {
-
-                if (isPosting) {
-                    return false;
-                }
-                isPosting = true;
-                $.post(
-                    '/medicine/details', {
-                        id: id
-                    },
-                    function(data) {
-                        if (data.success) {
-                            printSearchItem(data.data);
-                        } else {
-                            printText("接口请求错误");
-                        }
-                    },
-                    'json'
-                );
+                searchDetails(id);
             } else {
                 printText("记录选择错误");
             }
 
         } else {
-            currSearch = inputStr;
-
-            if (isPosting) {
-                return false;
-            }
-            isPosting = true;
-            $.post(
-                '/medicine/searchList', {
-                    search: currSearch
-                },
-                function(data) {
-                    if (data.success) {
-                        if (data.data.length > 0) {
-                            printSearchList(data.data);
-                        } else {
-                            printText("没有找到记录");
-                        }
-                    } else {
-                        printText("接口请求错误");
-                    }
-                },
-                'json'
-            );
+            currSearch.search = inputStr;
+            currSearch.page = 1;
+            searchList();
         }
     }
 });
+
+oInputDiv.click(function(){
+    oInput.focus();
+})
+
+function searchDetails(id){
+    if (isPosting) {
+        return false;
+    }
+    isPosting = true;
+    $.post(
+        '/medicine/details', {
+            id: id
+        },
+        function(data) {
+            if (data.success) {
+                printSearchItem(data.data);
+            } else {
+                printText("接口请求错误");
+            }
+        },
+        'json'
+    );
+}
+
+function searchList(isAdd){
+    if (isPosting) {
+        return false;
+    }
+    isPosting = true;
+    $.post(
+        '/medicine/searchList', currSearch,
+        function(data) {
+            if (data.success) {
+                if (data.data.length > 0) {
+                    printSearchList(data.data, isAdd, function(){
+                        var remainCount = data.count - ((currSearch.page * currSearch.limit) - (currSearch.limit - data.data.length));
+                        if(remainCount > 0){
+                                oInputIndicator.text('> 剩余' + remainCount + '条 >>> ')
+                                oInput.width(oInputDiv.width() - oInputIndicator.width() - 1);
+                        }else{
+                            // 无剩余记录清空搜索条件
+                            initSearch();
+                        }
+                    });
+
+                } else {
+                    // 没有找到记录清空搜索条件
+                    initSearch();
+                    printText("没有找到记录");
+                }
+            } else {
+                printText("接口请求错误");
+            }
+        },
+        'json'
+    );
+}
+
+function initSearch(){
+    currSearch.search = '';
+    currSearch.page = 0;
+}
 
 //打印文字
 function printText(text, fn) {
@@ -186,22 +243,28 @@ function printSearchItem(item, fn) {
 }
 
 //打印输出列表
-function printSearchList(data, fn) {
+function printSearchList(data, isAdd, fn) {
     if (data.length > 0) {
         $.each(data, function(index, item) {
             if (index === 0) {
                 printPrepare();
             }
 
-            var str = '[' + (index + 1) + '].&nbsp;' +
-                '<span index="' + (index + 1) + '" id="' + item.id + '" class="name">' + item.name + '</span>' + '&nbsp;' +
+            var itemIndex = (currSearch.page - 1) * currSearch.limit + index + 1;
+            item.index = itemIndex;
+            var str = '[' + itemIndex + '].&nbsp;' +
+                '<span index="' + itemIndex + '" id="' + item.id + '" class="name">' + item.name + '</span>' + '&nbsp;' +
                 '<span class="alias">' + getRelativeAlias(item.alias) + '</span>' + '&nbsp;' +
                 '<span class="source1">' + item.source1 + '</span>' + '&nbsp;' +
                 '<span class="source2">' + item.source2 + '</span>' + '&nbsp;' +
                 '<span class="reference">' + item.reference + '</span>' + '&nbsp;';
             oResultLast.append(str + '<br>');
         })
-        currResultDivs = [oResultLast];
+
+        if(isAdd !== true){
+            currResults = [];
+        }
+        currResults.push(data);
 
         printStart(function(){
             printOver();
@@ -240,17 +303,21 @@ function printOver() {
     oInputDiv.show();
     // 宽度要在show之后调，因为父控件宽度100%
     oInput.width(oInputDiv.width() - oInputIndicator.width() - 1);
-    oInput.focus();
+    config.platform === 'pc' && oInput.focus();
     scrollToEnd();
     isPosting = false;
 }
 
 //获取选择项的id
 function getSelectedId(index) {
-    for (var i = 0; i < currResultDivs.length; i++) {
-        var o = currResultDivs[i].find('span[index="' + index + '"]');
-        if (o.length > 0) {
-            return o.attr('id');
+    for(var i = 0; i < currResults.length; i++){
+        var i1 = currResults[i];
+        for(var j = 0; j < i1.length; j++){
+            var j1 = i1[j];
+
+            if(j1.index == index){
+                return j1.id;
+            }
         }
     }
     return false;
@@ -263,10 +330,10 @@ function getRelativeAlias(alias) {
         return '';
     }
 
-    if (currSearch && alias.indexOf(currSearch) > -1) {
+    if (currSearch.search && alias.indexOf(currSearch.search) > -1) {
         var aliasArr = alias.split('，');
         for (var i = 0; aliasArr; i++) {
-            if (aliasArr[i].indexOf(currSearch) > -1) {
+            if (aliasArr[i].indexOf(currSearch.search) > -1) {
                 return aliasArr[i];
             }
         }
@@ -284,12 +351,12 @@ function printByLine(totalHeight, fn) {
 
     if (oResultLastCurrHeight + 1 < totalHeight) {
         setTimeout(function() {
-            oResultLastCurrHeight += lineHeight;
+            oResultLastCurrHeight += (config.printMode === 'smooth' ? 2 : lineHeight);
             oResultLast.height(oResultLastCurrHeight);
             scrollToEnd();
 
             printByLine(totalHeight, fn);
-        }, oResultLastCurrHeight === 0 ? 0 : config.printInterval);
+        }, oResultLastCurrHeight === 0 ? 0 : (config.printMode === 'smooth' ? 4 : 60));
     } else {
         if (fn) {
             fn();
@@ -301,3 +368,5 @@ function printByLine(totalHeight, fn) {
 function scrollToEnd() {
     oResult.scrollTop(oResult.prop('scrollHeight'));
 }
+
+document.write("<script type='text/javascript' src='/static/js/cmd.js'></script>");

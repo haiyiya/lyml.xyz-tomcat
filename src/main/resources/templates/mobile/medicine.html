@@ -27,13 +27,24 @@
 </head>
 <body>
 	<div id="test" class="result-test">&nbsp;<span>测试Test</span></div>
-    <div class="result scroll"><div class="input-div"><span class="input-indicator"></span><input class="input"/></div></div>
+	<div id="iamnewdriver" style="position: absolute;left: 0px;bottom: 60%;padding: 10px 20px;background: #222;color: #FFF;display: none;"><span style="display: block;margin-bottom: 8px;">终于等到你&nbsp;&nbsp;💕</span>输入 ? 可查看帮助</div>
+    <div class="result scroll"><div class="input-div"><span class="input-indicator"></span><input spellcheck="false" class="input"/></div></div>
     <script src="/static/js/medicine.js"></script>
     <script>
     	launch({
             platform: 'mobile',
             listAliasLenght: 6
         })
+
+    	if(!getCookie('iamnotnewdriver')){
+    		addCookie('iamnotnewdriver', 1)
+
+    		var oIamnewdriver = $("#iamnewdriver");
+    		oIamnewdriver.show();
+	        setTimeout(function(){
+	        	oIamnewdriver.animate({left:'-' + (oIamnewdriver.width() + 40) + 'px'});
+	        }, 4000)
+    	}
     </script>
 </body>
 </html>
